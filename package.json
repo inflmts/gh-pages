@@ -1,0 +1,25 @@
+{
+  "name": "@inflmts/gh-pages",
+  "version": "0.1.0",
+  "description": "Publish to GitHub Pages",
+  "type": "module",
+  "main": "index.js",
+  "bin": "cli.js",
+  "files": [
+    "index.js",
+    "cli.js"
+  ],
+  "scripts": {},
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "author": {
+    "name": "Daniel Li",
+    "url": "https://inflmts.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inflmts/gh-pages.git"
+  },
+  "license": "MIT"
+}
