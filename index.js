@@ -2,45 +2,63 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import { join } from 'path';
 
-function getOutput(command, ...args) {
+function exec(command, args, options) {
+  const capture = options?.capture ?? false;
+  const input = options?.input;
   return execFileSync(command, args, {
-    stdio: ['inherit', 'pipe', 'inherit'],
+    stdio: [
+      input !== undefined ? 'pipe' : 'inherit',
+      capture ? 'pipe' : 'inherit',
+      'inherit'
+    ],
+    input,
     encoding: 'utf8'
   });
 }
 
-function createGit(dir, gitDir) {
-  const prefix = [`--git-dir=${gitDir}`, `--work-tree=${dir}`];
-  return function git(...args) {
-    execFileSync('git', [...prefix, ...args], { stdio: 'inherit' });
-  };
+function createGit(dir) {
+  const prefix = ['-C', dir, '--git-dir=.gh-pages-git', '--work-tree=.'];
+  return (args, options) => exec('git', [...prefix, ...args], options);
 }
 
 export function deploy(dir, options) {
-  let targetRemote = options?.remote;
-  let targetBranch = options?.branch ?? 'gh-pages';
+  const paths = options?.paths ?? ['.'];
+  const targetRemote = options?.remote ?? 'origin';
+  const targetBranch = options?.branch ?? 'gh-pages';
   let message = options?.message;
-  let dry = options?.dry ?? false;
+  const dry = options?.dry ?? false;
+  const jekyll = options?.jekyll ?? false;
+  const cname = options?.cname;
 
-  if (targetRemote === undefined) {
-    targetRemote = getOutput('git', 'remote', 'get-url', '--push', 'origin').trim();
-  }
+  const targetRemoteUrl = exec('git', ['remote', 'get-url', '--push', targetRemote], { capture: true }).trim();
 
+  // generate message from `git describe --always` if none was specified
   if (message === undefined) {
-    message = `Update to ${getOutput('git', 'describe', '--always').trim()}`;
+    const version = exec('git', ['describe', '--always'], { capture: true }).trim();
+    message = `Update to ${version}`;
   }
 
+  const git = createGit(dir);
   const gitDir = join(dir, '.gh-pages-git');
-  const git = createGit(dir, gitDir);
+  const updateIndexArgs = [];
 
   fs.rmSync(gitDir, { force: true, recursive: true });
-  git('init', '-q', '-b', targetBranch);
-  git('add', '--force', ':/:', ':!/:.gh-pages-git');
-  git('commit', '-m', message);
+  git(['init', '-q', '-b', targetBranch]);
+  git(['add', '--force', '--', ...paths, ':!:.gh-pages-git']);
 
-  if (dry) {
-    git('push', '-n', '--force', targetRemote, targetBranch);
-  } else {
-    git('push', '--force', targetRemote, targetBranch);
+  if (!jekyll) {
+    const id = git(['hash-object', '-w', '/dev/null'], { capture: true }).trim();
+    updateIndexArgs.push('--cacheinfo', `100644,${id},.nojekyll`);
   }
+
+  if (cname !== undefined) {
+    const id = git(['hash-object', '-w', '--stdin'], { input: cname, capture: true }).trim();
+    updateIndexArgs.push('--cacheinfo', `100644,${id},CNAME`);
+  }
+
+  if (updateIndexArgs.length)
+    git(['update-index', '--add', ...updateIndexArgs]);
+
+  git(['commit', '-m', message]);
+  git(['push', ...(dry ? ['-n'] : []), '--force', targetRemoteUrl, targetBranch]);
 }
