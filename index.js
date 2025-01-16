@@ -24,13 +24,15 @@ function createGit(dir) {
 export function deploy(dir, options) {
   const paths = options?.paths ?? ['.'];
   const targetRemote = options?.remote ?? 'origin';
+  let targetRemoteUrl = options?.remoteUrl;
   const targetBranch = options?.branch ?? 'gh-pages';
   let message = options?.message;
   const dry = options?.dry ?? false;
   const jekyll = options?.jekyll ?? false;
   const cname = options?.cname;
 
-  const targetRemoteUrl = exec('git', ['remote', 'get-url', '--push', targetRemote], { capture: true }).trim();
+  if (targetRemoteUrl === undefined)
+    targetRemoteUrl = exec('git', ['remote', 'get-url', '--push', targetRemote], { capture: true }).trim();
 
   // generate message from `git describe --always` if none was specified
   if (message === undefined) {

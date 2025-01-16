@@ -46,7 +46,11 @@ This does the following:
 
 - `-r, --remote <remote>`
 
-  The remote to push to. The default is `origin`.
+  The named remote to push to. The default is `origin`.
+
+- `-R, --remote-url <url>`
+
+  The remote URL to push to. If specified, this overrides `-r, --remote`.
 
 - `-b, --branch <name>`
 
@@ -86,6 +90,7 @@ deploy(dir);
 deploy(dir, {
   paths: string[],
   remote: string,
+  remoteUrl: string,
   branch: string,
   message: string,
   dry: boolean,

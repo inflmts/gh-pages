@@ -6,7 +6,8 @@ import { deploy } from './index.js';
 program
   .name('gh-pages')
   .description('Publish a static site to GitHub Pages')
-  .option('-r, --remote <remote>', 'remote to push to [default: origin]')
+  .option('-r, --remote <remote>', 'named remote to push to [default: origin]')
+  .option('-R, --remote-url <url>', 'remote URL to push to, overrides -r')
   .option('-b, --branch <branch>', 'branch name [default: gh-pages]')
   .option('-m, --message <message>', 'commit message')
   .option('-n, --dry', 'pass -n to git push')
@@ -22,6 +23,7 @@ function main(dir, paths, opts) {
   deploy(dir, {
     paths: paths.length ? paths : undefined,
     remote: opts.remote,
+    remoteUrl: opts.remoteUrl,
     branch: opts.branch,
     message: opts.message,
     dry: opts.dry,
